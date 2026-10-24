@@ -1,0 +1,4 @@
+version: 1
+title: Slug invalido
+nodes:
+  - { id: svc-a, label: Servico A, type: microservice, status: new, slug: "tem espaco" }

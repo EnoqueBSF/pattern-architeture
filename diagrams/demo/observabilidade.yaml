@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=../../schema/diagram.schema.json
+version: 1
+title: "Observabilidade — instrumentacao do checkout-service"
+description: Novo stack de metricas e logs para o servico de checkout
+direction: LR
+locale: pt-BR
+
+groups:
+  - { id: app, label: Aplicacao, kind: layer }
+  - { id: stack, label: "Stack de Observabilidade", kind: environment }
+
+nodes:
+  - { id: svc, label: checkout-service, type: microservice, status: changed, icon: nestjs, subtitle: "Instrumentado com OpenTelemetry nesta fase", group: app }
+  - { id: otel, label: "Collector OTel", type: worker, status: new, icon: opentelemetry, group: stack }
+  - { id: prometheus, label: Prometheus, type: database, status: new, icon: prometheus, tech: "Metricas · 15d retencao", group: stack }
+  - { id: grafana, label: Grafana, type: frontend-web, status: new, icon: grafana, badge: "Dashboards prontos", group: stack }
+  - { id: sentry, label: Sentry, type: external-service, status: unchanged, icon: sentry, tech: "Error tracking" }
+
+edges:
+  - { from: svc, to: otel, protocol: other, label: "traces + metricas", status: new }
+  - { from: otel, to: prometheus, protocol: other, label: exporta }
+  - { from: grafana, to: prometheus, protocol: http, label: consulta }
+  - { from: svc, to: sentry, protocol: http, label: "exceptions" }

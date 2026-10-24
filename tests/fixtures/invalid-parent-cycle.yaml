@@ -1,0 +1,7 @@
+version: 1
+title: Ciclo de parent
+groups:
+  - { id: g1, label: Grupo 1, parent: g2 }
+  - { id: g2, label: Grupo 2, parent: g1 }
+nodes:
+  - { id: svc-a, label: Servico A, type: microservice, status: new, group: g1 }

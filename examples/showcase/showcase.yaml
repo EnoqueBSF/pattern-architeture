@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=../../schema/diagram.schema.json
+version: 1
+title: Showcase de tipos e status
+description: Um node de cada tipo, nos tres status, para validar formas e paleta
+direction: TB
+locale: pt-BR
+
+groups:
+  - { id: aws, label: "AWS prod", kind: environment }
+  - { id: aws-edge, label: Borda, kind: layer, parent: aws }
+  - { id: aws-core, label: Core, kind: layer, parent: aws }
+
+nodes:
+  - { id: user, label: Usuaria, type: actor, status: unchanged }
+  - { id: web, label: App Web, type: frontend-web, status: new, tech: "React" }
+  - { id: mobile, label: App Mobile, type: mobile-app, status: changed, tech: "React Native" }
+  - { id: cdn, label: Edge CDN, type: cdn, status: unchanged, group: aws-edge }
+  - { id: lb, label: Load Balancer, type: load-balancer, status: unchanged, group: aws-edge }
+  - { id: gw, label: API Gateway, type: api-gateway, status: changed, group: aws-edge }
+  - { id: svc, label: Servico Principal, type: microservice, status: new, tech: "Go", group: aws-core }
+  - { id: worker, label: Worker Assincrono, type: worker, status: new, tech: "Python", group: aws-core }
+  - { id: broker, label: Broker de Eventos, type: message-broker, status: new, group: aws-core }
+  - { id: queue, label: Fila de Jobs, type: queue, status: changed, group: aws-core }
+  - { id: cache, label: Cache, type: cache, status: unchanged, tech: "Redis", group: aws-core }
+  - { id: db, label: Banco Principal, type: database, status: unchanged, tech: "PostgreSQL", group: aws-core }
+  - { id: storage, label: Bucket de Arquivos, type: storage, status: unchanged, tech: "S3" }
+  - { id: ext, label: Gateway de Pagamento, type: external-service, status: unchanged }
+  - { id: legacy, label: Sistema Legado, type: generic, status: unchanged }
+
+edges:
+  - { from: user, to: web, protocol: http }
+  - { from: user, to: mobile, protocol: http }
+  - { from: web, to: cdn, protocol: http }
+  - { from: mobile, to: lb, protocol: http }
+  - { from: cdn, to: lb, protocol: http }
+  - { from: lb, to: gw, protocol: http }
+  - { from: gw, to: svc, protocol: grpc }
+  - { from: svc, to: cache, protocol: redis }
+  - { from: svc, to: db, protocol: sql }
+  - { from: svc, to: broker, protocol: kafka, label: "publica evento" }
+  - { from: broker, to: worker, protocol: kafka, label: consome }
+  - { from: worker, to: queue, protocol: sqs }
+  - { from: worker, to: storage, protocol: s3 }
+  - { from: svc, to: ext, protocol: http, label: cobranca }
+  - { from: svc, to: legacy, protocol: tcp }

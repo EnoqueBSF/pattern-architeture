@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=../../schema/diagram.schema.json
+version: 1
+title: "Pedidos — migracao para eventos via Kafka"
+description: Tres servicos passam a se comunicar por eventos em vez de chamadas diretas
+direction: TB
+locale: pt-BR
+
+groups:
+  - { id: edge, label: Borda, kind: layer }
+  - { id: core, label: "Dominio de Pedidos", kind: context }
+
+nodes:
+  - { id: gw, label: API Gateway, type: api-gateway, status: unchanged, icon: kong, group: edge }
+  - { id: orders, label: orders-service, type: microservice, status: changed, icon: java, tech: "Java 21 · Spring Boot", slug: core-orders-svc, group: core }
+  - { id: kafka, label: "Kafka", type: message-broker, status: new, icon: kafka, tech: "3 brokers · topic pedido.eventos", group: core }
+  - { id: billing, label: billing-service, type: microservice, status: changed, icon: python, tech: "Python 3.12 · FastAPI", group: core }
+  - { id: stock, label: stock-service, type: microservice, status: changed, icon: go, tech: "Go 1.23", group: core }
+  - { id: orders-db, label: "Banco Pedidos", type: database, status: unchanged, icon: postgresql, group: core }
+
+edges:
+  - { from: gw, to: orders, protocol: http, label: "POST /pedidos" }
+  - { from: orders, to: orders-db, protocol: sql }
+  - { from: orders, to: kafka, protocol: kafka, label: "publica pedido.criado", status: new }
+  - { from: kafka, to: billing, protocol: kafka, label: consome, status: new }
+  - { from: kafka, to: stock, protocol: kafka, label: consome, status: new }

@@ -1,0 +1,4 @@
+version: 1
+title: Campo desconhecido
+nodes:
+  - { id: svc-a, label: Servico A, type: microservice, status: new, estado: new }

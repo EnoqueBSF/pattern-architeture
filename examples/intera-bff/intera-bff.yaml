@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../../schema/diagram.schema.json
+version: 1
+title: "Intera BFF — Fase 1"
+description: Novo BFF lendo o Postgres existente e publicando eventos numa fila nova
+direction: LR
+locale: pt-BR
+
+groups:
+  - { id: clients, label: Clientes, kind: layer }
+  - { id: edge, label: Borda, kind: layer }
+  - { id: intera, label: Intera, kind: context }
+  - { id: core, label: "Core (legado)", kind: context }
+  - { id: data, label: Dados, kind: layer }
+  - { id: messaging, label: Mensageria, kind: layer }
+
+nodes:
+  - { id: web-app, label: Intera Web, type: frontend-web, status: unchanged, tech: "React · Vite", group: clients }
+  - id: api-gateway
+    label: API Gateway
+    type: api-gateway
+    status: changed
+    tech: "Kong 3.x"
+    group: edge
+    description: "Nova rota /intera/* apontando para o BFF"
+  - { id: intera-bff, label: intera-bff, type: microservice, status: new, tech: [Node.js 22, TypeScript, NestJS], group: intera }
+  - { id: orders-api, label: orders-api, type: microservice, status: unchanged, tech: "Java 21 · Spring Boot", group: core }
+  - { id: pg-main, label: "Postgres principal", type: database, status: unchanged, tech: "PostgreSQL 16 · AWS RDS", group: data }
+  - { id: intera-events, label: intera.events, type: queue, status: new, tech: "RabbitMQ · quorum queue", group: messaging }
+  - { id: notifier, label: notifier-worker, type: worker, status: new, tech: "Python 3.12" }
+  - { id: sendgrid, label: SendGrid, type: external-service, status: unchanged, tech: "API v3" }
+
+edges:
+  - { from: web-app, to: api-gateway, protocol: http, label: "/intera/*", status: changed }
+  - { from: api-gateway, to: intera-bff, protocol: http, label: REST }
+  - { from: api-gateway, to: orders-api, protocol: http, label: REST }
+  - { from: intera-bff, to: pg-main, protocol: sql, label: leitura }
+  - { from: orders-api, to: pg-main, protocol: sql }
+  - { from: intera-bff, to: intera-events, protocol: amqp, label: "publica pedido.criado" }
+  - { from: intera-events, to: notifier, protocol: amqp, label: consome }
+  - { from: notifier, to: sendgrid, protocol: http, label: "e-mail transacional" }

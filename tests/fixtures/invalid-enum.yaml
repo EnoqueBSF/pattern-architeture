@@ -1,0 +1,4 @@
+version: 1
+title: Enum invalido
+nodes:
+  - { id: svc-a, label: Servico A, type: micro-servicinho, status: new }

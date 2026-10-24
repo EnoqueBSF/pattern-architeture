@@ -1,0 +1,6 @@
+version: 1
+title: Referencia inexistente
+nodes:
+  - { id: svc-a, label: Servico A, type: microservice, status: new }
+edges:
+  - { from: svc-a, to: svc-b, protocol: http }

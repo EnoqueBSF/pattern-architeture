@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=../../schema/diagram.schema.json
+version: 1
+title: "App de notificacoes — backend serverless"
+description: Novo app mobile consumindo uma API 100% serverless na AWS
+direction: LR
+locale: pt-BR
+
+groups:
+  - { id: client, label: Cliente, kind: layer }
+  - { id: aws, label: "AWS (serverless)", kind: environment }
+
+nodes:
+  - { id: app, label: App Notificacoes, type: mobile-app, status: new, icon: react, tech: "React Native", group: client }
+  - { id: cognito, label: Cognito, type: api-gateway, status: new, icon: aws-cognito, slug: notif-user-pool, group: aws }
+  - { id: apigw, label: API Gateway, type: api-gateway, status: new, icon: aws-api-gateway, group: aws }
+  - { id: lambda, label: notif-handler, type: worker, status: new, icon: aws-lambda, tech: "Node.js 22", group: aws }
+  - { id: dynamo, label: Notificacoes, type: database, status: new, icon: aws-dynamodb, badge: "On-demand", group: aws }
+  - { id: sns, label: Push Notifications, type: queue, status: new, icon: aws-sns, group: aws }
+
+edges:
+  - { from: app, to: cognito, protocol: http, label: login }
+  - { from: app, to: apigw, protocol: http, label: "REST" }
+  - { from: apigw, to: lambda, protocol: other, label: invoca }
+  - { from: lambda, to: dynamo, protocol: other, label: "le/grava" }
+  - { from: lambda, to: sns, protocol: event, label: publica }
+  - { from: sns, to: app, protocol: event, label: push }

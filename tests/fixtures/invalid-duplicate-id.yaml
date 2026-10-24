@@ -1,0 +1,5 @@
+version: 1
+title: Id duplicado
+nodes:
+  - { id: svc-a, label: Servico A, type: microservice, status: new }
+  - { id: svc-a, label: Servico A duplicado, type: worker, status: unchanged }

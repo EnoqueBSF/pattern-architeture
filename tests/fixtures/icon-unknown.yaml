@@ -1,0 +1,4 @@
+version: 1
+title: Icone desconhecido
+nodes:
+  - { id: svc-a, label: Servico A, type: microservice, status: new, icon: aws-rdss }

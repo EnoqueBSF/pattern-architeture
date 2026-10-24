@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=../schema/diagram.schema.json
+version: 1
+title: "Nome do diagrama"
+# description: "Subtitulo opcional, 1 linha"
+direction: LR          # LR (padrao) ou TB
+locale: pt-BR           # pt-BR (padrao) ou en
+
+# Grupos sao opcionais. Usados para organizar nodes em blocos visuais
+# (camada, bounded-context, ambiente). `parent` permite aninhar (ate 3 niveis).
+groups:
+  - { id: exemplo-grupo, label: "Nome do grupo", kind: layer }
+  # kind: layer (padrao, bloco solido) | context (bounded-context) | environment (tracejado)
+
+# Cada node e um componente do sistema.
+nodes:
+  - id: exemplo-servico              # id curto, minusculo, unico (ex.: intera-bff)
+    label: "Nome exibido"            # nome legivel, aparece em negrito no card
+    type: microservice                # ver docs/NOTATION.md para a lista completa de tipos
+    status: new                       # new | changed | unchanged (obrigatorio -- a decisao central)
+    tech: "Node.js 22 · NestJS"       # opcional: linguagem/runtime · framework · motor (string livre)
+    group: exemplo-grupo              # opcional: id de um grupo declarado acima
+    # description: "Nota interna (vira tooltip no SVG, nao aparece desenhada)"
+    # icon: nestjs                    # opcional: substitui a forma geometrica por um icone (npm run icons -- list)
+    # slug: aws-bmg-apoio-operacoes   # opcional: identificador tecnico, linha discreta abaixo do nome
+    # subtitle: "Descricao visivel no card (diferente de description, que e so tooltip)"
+    # badge: "100% Pronto"            # opcional: selo de texto livre, alem do badge de status
+    # rank: 0                         # valvula de escape: forca a coluna (LR) / linha (TB)
+    # order: 0                        # valvula de escape: forca a ordem dentro da coluna/linha
+  - id: exemplo-banco
+    label: "Banco de dados"
+    type: database
+    status: unchanged
+    tech: "PostgreSQL"
+
+# Arestas conectam dois nodes. A seta vai de `from` para `to`:
+#   chamada sincrona: from = quem chama, to = quem e chamado
+#   mensageria: from = produtor/fila/consumidor, seguindo o fluxo da mensagem
+edges:
+  - from: exemplo-servico
+    to: exemplo-banco
+    protocol: sql              # http | grpc | graphql | websocket | sql | amqp | kafka | mqtt | sqs | redis | s3 | smtp | tcp | webhook | event | other
+    # label: "rota ou operacao"      # opcional, some antes do protocolo: "HTTP · rota"
+    # status: new                     # opcional: por padrao, 'new' se from OU to forem 'new'; senao 'unchanged'
+    # async: true                     # opcional: por padrao, deduzido do protocol (amqp/kafka/mqtt/sqs/webhook/event = assincrono)
+    # bidirectional: false

@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=../../schema/diagram.schema.json
+version: 1
+title: "Checkout com icones — extracao do monolito"
+description: Mesmo cenario do checkout, agora com icones de tecnologia e campos ricos
+direction: LR
+locale: pt-BR
+
+groups:
+  - { id: clients, label: Clientes, kind: layer }
+  - { id: edge, label: Borda, kind: layer }
+  - { id: legacy, label: "Core (legado)", kind: context }
+  - { id: aws, label: "AWS prod", kind: environment }
+  - { id: checkout, label: Checkout, kind: context, parent: aws }
+  - { id: payments, label: Pagamentos, kind: layer, parent: aws }
+
+nodes:
+  - { id: web, label: Web App, type: frontend-web, status: unchanged, icon: react }
+  - { id: mobile, label: App Mobile, type: mobile-app, status: unchanged, tech: "React Native", group: clients }
+  - id: gateway
+    label: API Gateway
+    type: api-gateway
+    status: changed
+    icon: kong
+    tech: "Kong 3.x"
+    group: edge
+    description: "Nova rota /checkout/* apontando para o checkout-service"
+  - { id: core, label: core-legado, type: microservice, status: unchanged, icon: laravel, slug: core-legado-api, group: legacy }
+  - { id: core-db, label: "Banco Core", type: database, status: unchanged, icon: mysql, group: legacy }
+  - id: checkout-svc
+    label: checkout-service
+    type: microservice
+    status: new
+    icon: nestjs
+    slug: aws-bmg-checkout-service
+    subtitle: "Orquestra o fluxo de pagamento do checkout"
+    badge: "100% Pronto"
+    group: checkout
+  - { id: checkout-db, label: "Banco Checkout", type: database, status: new, icon: aws-rds, tech: "PostgreSQL 16", group: checkout }
+  - { id: checkout-events, label: checkout.events, type: queue, status: new, icon: rabbitmq, group: payments }
+  - { id: payment-worker, label: payment-worker, type: worker, status: new, icon: nodejs, badge: "Em homologacao", group: payments }
+  - { id: payment-gateway, label: "Gateway de Pagamento", type: external-service, status: unchanged, subtitle: "API de terceiro para cobranca de cartao e pix", tech: "API v2" }
+
+edges:
+  - { from: web, to: gateway, protocol: http, label: "/checkout/*", status: new }
+  - { from: mobile, to: gateway, protocol: http, label: "/checkout/*", status: new }
+  - { from: gateway, to: core, protocol: http, label: resto da API }
+  - { from: gateway, to: checkout-svc, protocol: http, label: REST }
+  - { from: core, to: core-db, protocol: sql }
+  - { from: checkout-svc, to: checkout-db, protocol: sql }
+  - { from: checkout-svc, to: checkout-events, protocol: amqp, label: "publica pagamento.iniciado" }
+  - { from: checkout-events, to: payment-worker, protocol: amqp, label: consome }
+  - { from: payment-worker, to: payment-gateway, protocol: http, label: cobranca }
+  - { from: payment-worker, to: checkout-db, protocol: sql, label: atualiza status }
