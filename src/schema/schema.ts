@@ -54,6 +54,11 @@ export type RawGroup = z.infer<typeof GroupSchema>;
 export type RawNode = z.infer<typeof NodeSchema>;
 export type RawEdge = z.infer<typeof EdgeSchema>;
 
+/** Tipos de entrada (antes dos defaults do Zod) -- uteis para quem constroi objetos a validar, como o Studio. */
+export type GroupInput = z.input<typeof GroupSchema>;
+export type NodeInput = z.input<typeof NodeSchema>;
+export type EdgeInput = z.input<typeof EdgeSchema>;
+
 function crossRefChecks(data: { groups: RawGroup[]; nodes: RawNode[]; edges: RawEdge[] }, ctx: z.RefinementCtx) {
   const { groups, nodes, edges } = data;
 
@@ -161,3 +166,4 @@ export const DiagramSchema = z
   .superRefine(crossRefChecks);
 
 export type RawDiagram = z.infer<typeof DiagramSchema>;
+export type DiagramInput = z.input<typeof DiagramSchema>;

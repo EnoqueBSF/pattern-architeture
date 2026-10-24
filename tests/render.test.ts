@@ -27,6 +27,13 @@ describe('renderDiagramSource + toPng', () => {
     expect(result.report.routedCount).toBe(result.report.edgeCount);
   });
 
+  it('o SVG contem o grupo do corpo transladado por bodyY, e o layout bruto e exposto', () => {
+    const result = renderDiagramSource(source);
+    expect(result.bodyY).toBeGreaterThan(0);
+    expect(result.svg).toContain(`translate(0,${result.bodyY})`);
+    expect(result.layout.nodes.length).toBe(result.report.nodeCount);
+  });
+
   it('gera um PNG valido com assinatura correta', () => {
     const { svg } = renderDiagramSource(source);
     const png = toPng(svg, 2);

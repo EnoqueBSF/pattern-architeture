@@ -1,4 +1,4 @@
-import { layoutDiagram } from './layout/layout.js';
+import { layoutDiagram, type LayoutResult } from './layout/layout.js';
 import { parseDiagram } from './schema/load.js';
 import type { DiagramModel } from './schema/model.js';
 import { renderDocument } from './render/document.js';
@@ -20,6 +20,10 @@ export interface RenderOutput {
   svg: string;
   model: DiagramModel;
   report: RenderReport;
+  /** layout bruto (posicoes, tamanhos, placement logico) -- usado pelo Studio para desenhar a interatividade sobre o SVG */
+  layout: LayoutResult;
+  /** deslocamento vertical do corpo do grafo dentro do SVG; ver DocumentResult.bodyY */
+  bodyY: number;
 }
 
 /** Le, valida, calcula o layout e renderiza o SVG a partir do texto de definicao (YAML/JSON). */
@@ -47,5 +51,7 @@ export function renderDiagramSource(source: string): RenderOutput {
       warnings: model.warnings,
       violations,
     },
+    layout,
+    bodyY: doc.bodyY,
   };
 }

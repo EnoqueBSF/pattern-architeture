@@ -22,6 +22,8 @@ export interface DocumentResult {
   edgeCount: number;
   routedCount: number;
   noteCount: number;
+  /** deslocamento vertical do corpo do grafo (grupos/nodes/arestas) dentro do SVG; docY = layoutY + bodyY */
+  bodyY: number;
 }
 
 export function renderDocument(model: DiagramModel, layout: LayoutResult): DocumentResult {
@@ -72,5 +74,5 @@ export function renderDocument(model: DiagramModel, layout: LayoutResult): Docum
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(width)}" height="${fmt(totalHeight)}" viewBox="0 0 ${fmt(width)} ${fmt(totalHeight)}">${content}</svg>`;
   const routedCount = routedEdges.filter((re) => !re.usedFallback).length;
 
-  return { svg, width, height: totalHeight, edgeCount: routedEdges.length, routedCount, noteCount: notes.length };
+  return { svg, width, height: totalHeight, edgeCount: routedEdges.length, routedCount, noteCount: notes.length, bodyY };
 }

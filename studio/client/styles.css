@@ -1,0 +1,629 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-400.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter SemiBold';
+  src: url('/fonts/inter-600.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+button {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* --- toolbar --- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.toolbar-file {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.toolbar-error {
+  font-size: 11.5px;
+  color: #b91c1c;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.toolbar-zoom span {
+  font-size: 12px;
+  color: #64748b;
+  width: 44px;
+  text-align: center;
+}
+
+/* --- corpo: canvas + editor lado a lado --- */
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid #e2e8f0;
+}
+
+.app-side {
+  width: 420px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- canvas --- */
+
+.canvas-viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+}
+
+.canvas-host {
+  position: relative;
+  display: inline-block;
+  /* centraliza quando o diagrama cabe na area visivel; quando nao cabe, o scroll (overflow:auto
+     do pai) continua dando acesso a tudo -- margin:auto num flex item nao tem o bug classico de
+     "conteudo cortado" que justify/align-items:center teria aqui */
+  margin: auto;
+  transition: opacity 120ms ease;
+}
+
+.canvas-host.canvas-dimmed {
+  opacity: 0.45;
+}
+
+.canvas-host svg {
+  display: block;
+}
+
+/* --- drag-and-drop overlay (passo 8: so indicador visual, sem gravar) --- */
+
+.drag-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.drag-handle {
+  position: absolute;
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.drag-handle.dragging-source {
+  opacity: 0;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-ghost {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: #3730a3;
+  background: rgba(224, 231, 255, 0.85);
+  border: 1.5px solid #6366f1;
+  border-radius: 6px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.drop-indicator {
+  position: absolute;
+  background: #6366f1;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.drop-error-toast {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  pointer-events: auto;
+}
+
+.drop-error-toast button {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* --- status bar --- */
+
+.status-bar {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #334155;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.status-bar.status-error,
+.status-bar.status-invalid {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.status-bar.status-ok {
+  color: #166534;
+}
+
+.status-bar.status-pending {
+  color: #64748b;
+}
+
+.status-issues {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.status-warnings {
+  color: #b45309;
+}
+
+/* --- yaml panel (CodeMirror) --- */
+
+.yaml-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.yaml-panel .cm-editor {
+  height: 100%;
+}
+
+/* --- sidebar: outline + inspector --- */
+
+.sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.sidebar-outline {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow-y: auto;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sidebar-inspector {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.outline-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+}
+
+.outline-toolbar button {
+  flex: 1;
+}
+
+.outline-section {
+  padding: 8px 0;
+}
+
+.outline-section h4 {
+  margin: 4px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.outline-empty {
+  margin: 2px 12px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.outline-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.outline-item:hover {
+  background: #f1f5f9;
+}
+
+.outline-item.selected {
+  background: #e0e7ff;
+  color: #3730a3;
+  font-weight: 600;
+}
+
+.outline-group-item {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.outline-edge-item {
+  font-size: 12px;
+  color: #475569;
+}
+
+/* --- inspector forms --- */
+
+.inspector-form {
+  padding: 12px;
+}
+
+.inspector-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.inspector-empty {
+  padding: 16px 12px;
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+.form-section {
+  margin: 14px 0 10px;
+  padding: 10px 10px 2px;
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  background: #f5f6ff;
+}
+
+.form-section legend {
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #4f46e5;
+}
+
+.form-section-hint {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.field-label {
+  display: block;
+  font-size: 11.5px;
+  color: #64748b;
+  margin-bottom: 3px;
+}
+
+.field input[type='text'],
+.field select,
+.field textarea {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 5px 7px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input.field-invalid {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-checkbox input {
+  margin: 0;
+}
+
+.field-checkbox .field-label {
+  margin: 0;
+}
+
+.inspector-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+button.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+button.danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+/* --- dialogs --- */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.dialog {
+  width: 420px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+  padding: 16px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.dialog-close {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #64748b;
+  padding: 2px 6px;
+}
+
+.dialog-filter {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.dialog-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.dialog-file-list li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  font-size: 12.5px;
+  border-radius: 5px;
+}
+
+.dialog-file-list li button:hover {
+  background: #f1f5f9;
+}
+
+.dialog-template-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dialog-template-list li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.dialog-template-list li button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.dialog-template-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dialog-template-description {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.dialog-empty {
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+.dialog-error {
+  font-size: 12.5px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.dialog-hint {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: -4px 0 8px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.save-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 16px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 12.5px;
+  border-bottom: 1px solid #fecaca;
+}
+
+.save-error-banner button {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}

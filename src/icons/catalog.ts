@@ -61,3 +61,8 @@ export function getIcon(key: string): IconDef {
 export function iconKeys(): string[] {
   return Object.keys(loadCatalog().icons).sort();
 }
+
+/** Mapa alias -> chave canonica (ex.: "azure" -> "microsoft-azure"), para UIs que querem buscar/exibir por alias. */
+export function iconAliases(): Record<string, string> {
+  return { ...loadCatalog().aliases };
+}

@@ -1,0 +1,33 @@
+{
+  "name": "pattern-architeture-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Frontend local do pattern-architeture: montar diagramas visualmente e exportar",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zustand": "5.0.16",
+    "yaml": "^2.9.1",
+    "codemirror": "^6.0.1",
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-yaml": "^6.1.1",
+    "@codemirror/lint": "^6.8.1",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.34.1"
+  },
+  "devDependencies": {
+    "vite": "8.3.5",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/node": "^22.13.0"
+  }
+}

@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../schema/diagram.schema.json
+version: 1
+title: "Nome do diagrama"
+description: "Subtitulo opcional, 1 linha"
+direction: LR
+locale: pt-BR
+
+# Este template mostra o "card completo" -- o mesmo padrao visual de um board de Change/ARB:
+# icone real, slug tecnico, subtitulo visivel e selo, alem dos campos basicos. Ver
+# docs/NOTATION.md, secao "Card com icone", para o desenho ASCII e as regras completas.
+
+groups:
+  - { id: dados, label: "Dados", kind: layer }
+
+nodes:
+  # --- card completo: icon + slug + subtitle + badge, todos preenchidos ---
+  - id: banco-checkout
+    label: "Banco Checkout"
+    type: database
+    status: new
+    tech: "PostgreSQL 16 · AWS RDS"
+    group: dados
+    icon: postgresql                                          # substitui a forma geometrica pelo icone real (npm run icons -- list)
+    slug: aws-bmg-checkout-db                                  # identificador tecnico, linha discreta abaixo do nome
+    subtitle: "Interface para comunicacao com a dataprev"      # descricao VISIVEL no card (diferente de description, que e so tooltip)
+    badge: "100% Pronto"                                       # selo de texto livre, alem do badge de status
+
+  # --- card simples (sem icone): so os campos basicos, para comparar o antes/depois ---
+  - id: servico-checkout
+    label: "Servico de Checkout"
+    type: microservice
+    status: new
+    tech: "Node.js 22 · NestJS"
+
+edges:
+  - from: servico-checkout
+    to: banco-checkout
+    protocol: sql
+    label: "le/grava pedido"

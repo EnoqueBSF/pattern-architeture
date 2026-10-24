@@ -71,6 +71,56 @@ describe.each([
     expect(Number.isFinite(layout.width)).toBe(true);
     expect(Number.isFinite(layout.height)).toBe(true);
   });
+
+  it('placement (container/rank/order) e consistente com a geometria absoluta', () => {
+    const geomById = new Map<string, { x: number; y: number; w: number; h: number }>();
+    for (const n of layout.nodes) geomById.set(n.id, { x: n.x, y: n.y, w: n.w, h: n.h });
+    for (const g of layout.groups) geomById.set(g.id, { x: g.x, y: g.y, w: g.w, h: g.h });
+
+    const allIds = [...layout.nodes.map((n) => n.id), ...layout.groups.map((g) => g.id)];
+    const placedIds = layout.placement.map((p) => p.id);
+    expect([...placedIds].sort()).toEqual([...allIds].sort());
+    expect(new Set(placedIds).size).toBe(placedIds.length);
+
+    const isLR = layout.direction === 'LR';
+    const mainStart = (id: string) => {
+      const g = geomById.get(id)!;
+      return isLR ? g.x : g.y;
+    };
+    const mainEnd = (id: string) => {
+      const g = geomById.get(id)!;
+      return isLR ? g.x + g.w : g.y + g.h;
+    };
+    const crossCenter = (id: string) => {
+      const g = geomById.get(id)!;
+      return isLR ? g.y + g.h / 2 : g.x + g.w / 2;
+    };
+
+    const byContainer = new Map<string, typeof layout.placement>();
+    for (const p of layout.placement) byContainer.set(p.container, [...(byContainer.get(p.container) ?? []), p]);
+
+    for (const [containerId, items] of byContainer) {
+      const byRank = new Map<number, typeof items>();
+      for (const p of items) byRank.set(p.rank, [...(byRank.get(p.rank) ?? []), p]);
+
+      for (const [rank, rankItems] of byRank) {
+        const sorted = [...rankItems].sort((a, b) => a.order - b.order);
+        expect(sorted.map((p) => p.order), `container "${containerId}" rank ${rank}`).toEqual(Array.from({ length: sorted.length }, (_, i) => i));
+        for (let i = 1; i < sorted.length; i++) {
+          expect(crossCenter(sorted[i]!.id), `container "${containerId}" rank ${rank}: "${sorted[i]!.id}" deveria vir depois de "${sorted[i - 1]!.id}"`).toBeGreaterThan(
+            crossCenter(sorted[i - 1]!.id),
+          );
+        }
+      }
+
+      const ranks = [...byRank.keys()].sort((a, b) => a - b);
+      for (let i = 0; i < ranks.length - 1; i++) {
+        const curEnd = Math.max(...byRank.get(ranks[i]!)!.map((p) => mainEnd(p.id)));
+        const nextStart = Math.min(...byRank.get(ranks[i + 1]!)!.map((p) => mainStart(p.id)));
+        expect(curEnd, `container "${containerId}": rank ${ranks[i]} invade rank ${ranks[i + 1]}`).toBeLessThanOrEqual(nextStart + 0.01);
+      }
+    }
+  });
 });
 
 describe('layoutDiagram: campos novos no modo forma (sem icone)', () => {

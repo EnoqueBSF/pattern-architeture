@@ -48,6 +48,18 @@ export interface GroupLayout {
   h: number;
 }
 
+/** Posicao logica (coluna/ordem dentro do container) de um node ou grupo -- usada pelo Studio para inferir drag-and-drop. */
+export interface ItemPlacement {
+  id: string;
+  kind: 'node' | 'group';
+  /** id do container (group ou ROOT) que contem este item diretamente */
+  container: string;
+  /** coluna (LR) ou linha (TB) dentro do container */
+  rank: number;
+  /** posicao dentro da coluna/linha, 0-indexed */
+  order: number;
+}
+
 export interface LayoutResult {
   direction: 'LR' | 'TB';
   /** largura/altura do corpo do grafo (sem cabecalho/legenda, adicionados no render do documento) */
@@ -55,6 +67,8 @@ export interface LayoutResult {
   height: number;
   nodes: NodeLayout[];
   groups: GroupLayout[];
+  /** posicao logica (container/rank/order) de todo node e grupo, na ordem em que foram processados */
+  placement: ItemPlacement[];
 }
 
 export function layoutDiagram(model: DiagramModel): LayoutResult {
@@ -70,6 +84,7 @@ export function layoutDiagram(model: DiagramModel): LayoutResult {
   for (const [id, sz] of nodeSizeById) itemSize.set(id, { w: sz.w, h: sz.h });
 
   const relativePlacement = new Map<string, { x: number; y: number }>();
+  const placement: ItemPlacement[] = [];
   const processingOrder = postOrderContainers(tree);
 
   for (const containerId of processingOrder) {
@@ -104,6 +119,16 @@ export function layoutDiagram(model: DiagramModel): LayoutResult {
 
     const ranks = computeRanks(items, simpleEdges, rankHints, declIndexOf);
     const orders = computeOrder(items, ranks, simpleEdges, declIndexOf, orderHints);
+
+    for (const itemId of items) {
+      placement.push({
+        id: itemId,
+        kind: tree.isGroup(itemId) ? 'group' : 'node',
+        container: containerId,
+        rank: ranks.get(itemId)!,
+        order: orders.get(itemId)!,
+      });
+    }
 
     const sizes = new Map(items.map((id) => [id, itemSize.get(id)!]));
     const result = placeItems(model.direction, items, ranks, orders, sizes, placeEdges, tree.isGroup);
@@ -177,5 +202,5 @@ export function layoutDiagram(model: DiagramModel): LayoutResult {
   const width = CANVAS.marginX * 2 + rootSize.w;
   const height = CANVAS.marginX * 2 + rootSize.h;
 
-  return { direction: model.direction, width, height, nodes, groups };
+  return { direction: model.direction, width, height, nodes, groups, placement };
 }

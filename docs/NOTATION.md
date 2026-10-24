@@ -93,6 +93,10 @@ geométrica do seu `type` por um card no estilo:
 
 Fórmulas exatas de tamanho/posicionamento: [LAYOUT.md](./LAYOUT.md), seção "1b. Card com ícone".
 
+Para começar já com esse padrão preenchido (em vez de copiar os 4 campos um por um): template
+`templates/card-completo.template.yaml` — via CLI (`npm run diagram -- templates/card-completo.template.yaml`)
+ou no [Studio](./STUDIO.md) (botão "Novo" → "Card completo (padrão ARB)").
+
 ## Catálogo de ícones
 
 Fonte única: o conjunto [`logos`](https://icon-sets.iconify.design/logos/) do Iconify

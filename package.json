@@ -14,7 +14,10 @@
     "icons": "tsx scripts/icons.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run test"
+    "check": "npm run typecheck && npm run test",
+    "studio": "tsx studio/server/main.ts",
+    "studio:install": "npm --prefix studio install",
+    "studio:check": "npm --prefix studio run check"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

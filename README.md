@@ -36,11 +36,22 @@ De outro repositório, sem instalar nada ali:
 npm --prefix /caminho/para/pattern-architeture run diagram -- /caminho/para/seu-diagrama.yaml
 ```
 
+## Studio (montar sem editar YAML à mão)
+
+```bash
+npm run studio:install            # uma vez
+npm run studio -- caminho/do/diagrama.yaml
+```
+
+Abre um frontend local (formulário guiado + editor de texto + canvas, sincronizados, com
+drag-and-drop de reordenação) no navegador. Ver [docs/STUDIO.md](./docs/STUDIO.md).
+
 ## Onde cada coisa fica
 
 - `templates/diagram.template.yaml` — esqueleto comentado, copie para começar.
 - `docs/NOTATION.md` — todos os campos do YAML, tipos de node → forma, status → cor.
 - `docs/LAYOUT.md` — como o algoritmo de layout/roteamento funciona (manutenção).
+- `docs/STUDIO.md` — o frontend local (`studio/`): arquitetura, drag-and-drop, limitações.
 - `examples/` — diagramas de referência já gerados (`.yaml` + `.svg` + `.png`).
 - `schema/diagram.schema.json` — contrato formal (gerado via `npm run schema`), dá autocomplete
   no editor se o YAML começar com `# yaml-language-server: $schema=...`.

@@ -60,6 +60,22 @@ um sistema/mudança, em qualquer repositório.
   5. commite `assets/icons/catalog.json` junto com o diagrama (o catálogo é compartilhado entre
      todos os diagramas futuros — adicionar um ícone uma vez beneficia todas as sessões depois)
 
+## Studio (frontend local)
+
+Alternativa ao fluxo acima quando faz mais sentido montar/ajustar visualmente em vez de editar o
+YAML à mão: `npm run studio -- caminho/do/arquivo.yaml` (ver [docs/STUDIO.md](./docs/STUDIO.md)).
+Duas coisas a ter em mente ao usar ou revisar um diagrama que passou pelo Studio:
+
+- Um `rank`/`order` no YAML pode ter vindo de um **drag no Studio**, não de edição manual — o
+  Studio grava esses hints automaticamente ao reordenar (e tenta removê-los de novo quando o
+  motor já calcularia o mesmo valor sozinho). Não assuma que todo hint presente é intencional só
+  porque está lá; a regra "válvula de escape, use só se o automático ficar ruim" (acima) ainda
+  vale — se parecer desnecessário, pode simplesmente apagar e rodar `npm run diagram` de novo
+  para conferir.
+- Se adicionar um ícone novo (`npm run icons -- add ...`) com o Studio **já aberto**, reinicie o
+  servidor dele — o catálogo de ícones é carregado em memória uma única vez ao subir; recarregar
+  só a página no navegador não é suficiente para o ícone novo aparecer no seletor.
+
 ## Comandos úteis
 
 ```bash
@@ -68,6 +84,7 @@ npm run example      # regera examples/intera-bff, examples/showcase e examples/
 npm run check        # typecheck + testes (rode depois de mexer em src/)
 npm run schema       # regera schema/diagram.schema.json a partir de src/schema/schema.ts
 npm run icons -- search|add|list|check|preview   # ver "icone nao esta no catalogo" acima
+npm run studio -- arquivo.yaml [--port N] [--no-open] [--root dir]   # frontend local, ver docs/STUDIO.md
 ```
 
 ## Se for mexer no código do gerador (`src/`)
@@ -78,3 +95,14 @@ roteamento) o suficiente para não reimplementar nada às cegas. Depois de qualq
 byte — é a garantia real de "não quebrei nada que já existia") e `npm run example`, e confira
 que `git status` não mostra diff nos `.svg`/`.png` de `examples/` (determinismo quebrado é
 regressão).
+
+## Se for mexer no código do Studio (`studio/`)
+
+Leia [docs/STUDIO.md](./docs/STUDIO.md) antes — arquitetura (server/shared/client), por que é um
+pacote `npm` separado, e por que a paridade com o CLI (mesmo `renderDiagramSource`, nunca
+reimplementado) é inegociável. Depois de qualquer mudança, rode `npm --prefix studio run check`
+(typecheck + testes do pacote, isolado da raiz) **e** `npm run check` na raiz (confirma que o
+motor core continua intocado). Se mexer em `shared/yaml-edit.ts` ou `shared/drop-apply.ts`
+(edição cirúrgica do YAML / cálculo de placements do drag), rode os testes exaustivos desses
+arquivos com atenção — são a garantia de que o Studio nunca corrompe um YAML nem quebra a
+garantia de zero sobreposição do motor core.
