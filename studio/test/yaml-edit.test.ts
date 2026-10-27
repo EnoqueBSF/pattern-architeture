@@ -85,6 +85,26 @@ nodes:
     expect(fallbackUsed).toBe(false);
     expect((toJS(text) as { description: string }).description).toBe('Uma descricao');
   });
+
+  it('setRoot com valor array (tags), chave nova', () => {
+    const { text, fallbackUsed } = applyOps(src, [{ op: 'setRoot', key: 'tags', value: ['checkout', 'pagamentos'] }]);
+    expect(fallbackUsed).toBe(false);
+    expect((toJS(text) as { tags: string[] }).tags).toEqual(['checkout', 'pagamentos']);
+  });
+
+  it('setRoot com valor array (tags), sobrescrevendo um valor existente', () => {
+    const withTags = applyOps(src, [{ op: 'setRoot', key: 'tags', value: ['a'] }]).text;
+    const { text, fallbackUsed } = applyOps(withTags, [{ op: 'setRoot', key: 'tags', value: ['b', 'c'] }]);
+    expect(fallbackUsed).toBe(false);
+    expect((toJS(text) as { tags: string[] }).tags).toEqual(['b', 'c']);
+  });
+
+  it('setRoot com undefined remove a chave tags', () => {
+    const withTags = applyOps(src, [{ op: 'setRoot', key: 'tags', value: ['a'] }]).text;
+    const { text, fallbackUsed } = applyOps(withTags, [{ op: 'setRoot', key: 'tags', value: undefined }]);
+    expect(fallbackUsed).toBe(false);
+    expect((toJS(text) as { tags?: string[] }).tags).toBeUndefined();
+  });
 });
 
 describe('applyOps: casos basicos (block map)', () => {

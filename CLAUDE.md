@@ -76,6 +76,14 @@ Duas coisas a ter em mente ao usar ou revisar um diagrama que passou pelo Studio
   servidor dele — o catálogo de ícones é carregado em memória uma única vez ao subir; recarregar
   só a página no navegador não é suficiente para o ícone novo aparecer no seletor.
 
+## MCP (criar/editar a partir de um cliente MCP, ex. o próprio Claude Code)
+
+Terceira alternativa ao fluxo do topo (além de editar o YAML à mão ou usar o Studio): o servidor
+MCP registrado em escopo **user** (`pattern-architeture`, global — não precisa estar dentro deste
+repo) expõe tools para criar/editar diagramas conversacionalmente, reaproveitando a mesma lógica
+de edição cirúrgica e o mesmo motor core. Ver [docs/MCP.md](./docs/MCP.md) para a lista de tools,
+o formato de `changes` e os códigos de erro.
+
 ## Comandos úteis
 
 ```bash
@@ -85,6 +93,8 @@ npm run check        # typecheck + testes (rode depois de mexer em src/)
 npm run schema       # regera schema/diagram.schema.json a partir de src/schema/schema.ts
 npm run icons -- search|add|list|check|preview   # ver "icone nao esta no catalogo" acima
 npm run studio -- arquivo.yaml [--port N] [--no-open] [--root dir]   # frontend local, ver docs/STUDIO.md
+npm run catalog:up|down|status|reindex|reset     # Postgres local do catálogo, ver docs/STUDIO.md#catálogo
+npm run --silent mcp                              # servidor MCP via stdio (debug manual -- --silent evita poluir o canal JSON-RPC), ver docs/MCP.md
 ```
 
 ## Se for mexer no código do gerador (`src/`)
@@ -105,4 +115,10 @@ reimplementado) é inegociável. Depois de qualquer mudança, rode `npm --prefix
 motor core continua intocado). Se mexer em `shared/yaml-edit.ts` ou `shared/drop-apply.ts`
 (edição cirúrgica do YAML / cálculo de placements do drag), rode os testes exaustivos desses
 arquivos com atenção — são a garantia de que o Studio nunca corrompe um YAML nem quebra a
-garantia de zero sobreposição do motor core.
+garantia de zero sobreposição do motor core. Se mexer em `studio/catalog/` ou `studio/mcp/`
+(ou em `shared/changes.ts`/`shared/ops.ts`, usados por ambos), rode também
+`npm --prefix studio run test:db` (`npm run catalog:up` primeiro) — os testes de `catalog/` e
+`mcp/` contra o Postgres real de teste não entram no `check` padrão, que roda só com o catálogo
+desligado (ver docs/STUDIO.md#catálogo). O processo do servidor (Studio ou MCP) não recarrega
+sozinho ao mudar código em `studio/server/`, `studio/catalog/` ou `studio/mcp/` — reinicie-o
+depois de editar (ver "Limitações conhecidas" em docs/STUDIO.md).

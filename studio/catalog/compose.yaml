@@ -1,0 +1,19 @@
+name: pattern-architeture-catalog
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pattern
+      POSTGRES_PASSWORD: pattern-local-only
+      POSTGRES_DB: pattern_catalog
+    ports:
+      - "127.0.0.1:54747:5432"
+    volumes:
+      - ../data/postgres:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pattern -d pattern_catalog"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

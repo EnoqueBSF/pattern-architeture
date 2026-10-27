@@ -64,12 +64,55 @@ cada hint recém-criado e só mantém os que o motor realmente precisa para repr
 pedida; hints que já existiam no arquivo antes do drop nunca são tocados. Resultado: um drop
 simples tende a acrescentar só o hint estritamente necessário, não um por item do container.
 
+## Catálogo
+
+Índice **aditivo** por cima dos arquivos: `.yaml`/`.svg`/`.png` em `diagrams/`/`examples/`
+continuam a fonte de verdade no disco e no git, exatamente como antes. O catálogo é um
+PostgreSQL **local e isolado** (Docker Compose, só para este projeto — nunca a infra Aviait real)
+que guarda metadados pesquisáveis (título, descrição, projeto, tags, contagem de nodes/edges,
+hash do YAML) para listar/buscar sem precisar navegar o filesystem. Toda escrita (Studio ou MCP)
+grava os arquivos primeiro; o catálogo é atualizado como melhor esforço logo em seguida — se
+estiver offline, o save continua funcionando normalmente, só não fica indexado até o próximo
+save ou reindex manual.
+
+```bash
+npm run catalog:up          # sobe o Postgres local (Docker Compose), uma vez
+npm run catalog:status      # confere se está ok e quantos diagramas estão indexados
+npm run catalog:reindex     # reindexa a partir dos arquivos no disco (fonte de verdade)
+npm run catalog:down        # derruba o container (os dados ficam em studio/data/, gitignored)
+npm run catalog:reset       # apaga os dados e sobe limpo de novo -- pede --yes
+```
+
+Na UI, o diálogo "Abrir" tem duas abas: **Buscar** (catálogo — texto livre, filtro por chip de
+projeto/tag, botão "Reindexar") e **Arquivos** (filesystem puro, sempre disponível mesmo com o
+catálogo offline). Resultado com badge "desatualizado" = o YAML no disco mudou desde a última
+indexação; "apagado" = o arquivo não existe mais (aparece até o próximo reindex, que remove).
+
+`tags` é um campo opcional do próprio YAML (`tags: [checkout, pagamentos]`, ver
+[NOTATION.md](./NOTATION.md)) — viaja com o arquivo (inclusive exportado em draw.io/.png como
+metadado) e também é indexado no catálogo para filtro por chip.
+
+## MCP
+
+Para montar diagramas conversacionalmente (sem abrir o Studio nem escrever YAML à mão), ver
+[MCP.md](./MCP.md) — servidor MCP que reaproveita a mesma lógica de edição cirúrgica e o mesmo
+motor core deste Studio.
+
 ## Limitações conhecidas
 
 - O catálogo de ícones (`assets/icons/catalog.json`) é carregado em memória **uma vez** quando o
   servidor do Studio sobe. Se você rodar `npm run icons -- add ...` (ou editar o catálogo) com o
   Studio já aberto, reinicie o servidor (`Ctrl+C` e `npm run studio -- ...` de novo) para o
   ícone novo aparecer no seletor — só reabrir a página no navegador não basta.
+- **De forma geral, o processo do servidor (`studio/server/**`, `studio/catalog/**`) não recarrega
+  sozinho** quando o código desses arquivos muda — só o `client/` tem hot-reload via Vite. Depois
+  de editar `studio/server/` ou `studio/catalog/`, reinicie o processo do Studio (`Ctrl+C` e
+  `npm run studio -- ...` de novo); um processo antigo rodando em background pode responder com o
+  HTML de fallback do Vite em `/api/*` em vez de JSON — sintoma de que está desatualizado, não um
+  bug no código atual.
+- No macOS com Docker Desktop, `npm run catalog:up` pode falhar logo após um `npm run catalog:reset`
+  com erro tipo `pg_wal: File exists` (latência de sincronização do bind mount). Se acontecer:
+  `docker compose -f studio/catalog/compose.yaml down && rm -rf studio/data/ && npm run catalog:up`.
 - Criar uma coluna/rank totalmente nova via drag não é suportado na v1 — o item sempre cai num
   rank já existente no container de destino (o mais próximo da posição onde foi solto). Para uma
   coluna nova, edite `rank`/`order` manualmente no YAML ou no formulário.

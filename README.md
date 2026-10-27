@@ -46,12 +46,26 @@ npm run studio -- caminho/do/diagrama.yaml
 Abre um frontend local (formulário guiado + editor de texto + canvas, sincronizados, com
 drag-and-drop de reordenação) no navegador. Ver [docs/STUDIO.md](./docs/STUDIO.md).
 
+Diagramas salvos (pelo Studio ou pelo MCP abaixo) ficam indexados num catálogo pesquisável
+(PostgreSQL local, aditivo — os `.yaml`/`.svg`/`.png` continuam a fonte de verdade) — ver
+[docs/STUDIO.md#catálogo](./docs/STUDIO.md#catálogo).
+
+## MCP (montar a partir de um cliente MCP, ex. o Claude Code)
+
+```bash
+claude mcp add --scope user pattern-architeture -- "$(pwd)/node_modules/.bin/tsx" "$(pwd)/studio/mcp/main.ts"
+```
+
+Expõe tools para criar/editar diagramas conversacionalmente, buscar no catálogo e exportar —
+reaproveita a mesma lógica de edição e o mesmo motor do Studio/CLI. Ver [docs/MCP.md](./docs/MCP.md).
+
 ## Onde cada coisa fica
 
 - `templates/diagram.template.yaml` — esqueleto comentado, copie para começar.
 - `docs/NOTATION.md` — todos os campos do YAML, tipos de node → forma, status → cor.
 - `docs/LAYOUT.md` — como o algoritmo de layout/roteamento funciona (manutenção).
-- `docs/STUDIO.md` — o frontend local (`studio/`): arquitetura, drag-and-drop, limitações.
+- `docs/STUDIO.md` — o frontend local (`studio/`): arquitetura, drag-and-drop, catálogo, limitações.
+- `docs/MCP.md` — o servidor MCP (`studio/mcp/`): tools, formato de `changes`, códigos de erro.
 - `examples/` — diagramas de referência já gerados (`.yaml` + `.svg` + `.png`).
 - `schema/diagram.schema.json` — contrato formal (gerado via `npm run schema`), dá autocomplete
   no editor se o YAML começar com `# yaml-language-server: $schema=...`.

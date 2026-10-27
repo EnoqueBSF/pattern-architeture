@@ -3,10 +3,13 @@ import {
   addEdge,
   addGroup,
   addNode,
+  AmbiguousEdgeRefError,
   clearHints,
   deleteEdge,
   deleteGroup,
   deleteNode,
+  findEdgeIndex,
+  NotFoundError,
   renameGroup,
   renameNode,
   setNodeField,
@@ -256,5 +259,53 @@ describe('clearHints', () => {
     const raw = makeRaw();
     raw.groups![0]!.rank = 1;
     expect(clearHints(raw, 'nodes')).toEqual([]);
+  });
+});
+
+describe('findEdgeIndex', () => {
+  it('resolve por index', () => {
+    expect(findEdgeIndex(makeRaw(), { index: 1 })).toBe(1);
+  });
+
+  it('lanca NotFoundError para index fora do range', () => {
+    expect(() => findEdgeIndex(makeRaw(), { index: 99 })).toThrow(NotFoundError);
+  });
+
+  it('resolve por id quando a edge tem id', () => {
+    const raw = makeRaw();
+    raw.edges![1]!.id = 'e-bc';
+    expect(findEdgeIndex(raw, { id: 'e-bc' })).toBe(1);
+  });
+
+  it('lanca NotFoundError para id inexistente', () => {
+    expect(() => findEdgeIndex(makeRaw(), { id: 'zzz' })).toThrow(NotFoundError);
+  });
+
+  it('resolve por from+to quando unica', () => {
+    expect(findEdgeIndex(makeRaw(), { from: 'b', to: 'c' })).toBe(1);
+  });
+
+  it('lanca NotFoundError para from+to sem nenhuma edge correspondente', () => {
+    expect(() => findEdgeIndex(makeRaw(), { from: 'c', to: 'a' })).toThrow(NotFoundError);
+  });
+
+  it('from+to com mais de uma correspondencia lanca AmbiguousEdgeRefError com os candidatos', () => {
+    const raw = makeRaw();
+    raw.edges!.push({ from: 'a', to: 'b' }); // duplica a edge 0 -- ambiguo
+    expect(() => findEdgeIndex(raw, { from: 'a', to: 'b' })).toThrow(AmbiguousEdgeRefError);
+    let caught: unknown;
+    try {
+      findEdgeIndex(raw, { from: 'a', to: 'b' });
+    } catch (err) {
+      caught = err;
+    }
+    expect((caught as InstanceType<typeof AmbiguousEdgeRefError>).candidates).toEqual([0, 3]);
+  });
+
+  it('protocol desambigua quando from+to repete mas o protocolo difere', () => {
+    const raw = makeRaw();
+    raw.edges![0]!.protocol = 'http';
+    raw.edges!.push({ from: 'a', to: 'b', protocol: 'grpc' });
+    expect(findEdgeIndex(raw, { from: 'a', to: 'b', protocol: 'grpc' })).toBe(3);
   });
 });

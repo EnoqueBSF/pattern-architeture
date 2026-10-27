@@ -5,6 +5,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { createServer as createViteServer } from 'vite';
+import { resolveCatalogConfig } from '../catalog/config.js';
+import { getCatalogSql, getCatalogStatus } from '../catalog/db.js';
+import { reindex } from '../catalog/indexer.js';
 import { createHandler } from './app.js';
 
 const STUDIO_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -16,16 +19,18 @@ interface CliArgs {
   port: number;
   open: boolean;
   extraRoot?: string;
+  noCatalog: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { port: 4747, open: true };
+  const args: CliArgs = { port: 4747, open: true, noCatalog: false };
   const rest = [...argv];
   while (rest.length > 0) {
     const a = rest.shift()!;
     if (a === '--port') args.port = Number(rest.shift());
     else if (a === '--no-open') args.open = false;
     else if (a === '--root') args.extraRoot = rest.shift();
+    else if (a === '--no-catalog') args.noCatalog = true;
     else if (!args.file) args.file = a;
   }
   return args;
@@ -83,6 +88,8 @@ async function main(): Promise<void> {
   if (initialFile) allowedRoots.push(dirname(initialFile));
   if (args.extraRoot) allowedRoots.push(resolveInput(args.extraRoot));
 
+  const catalogConfig = resolveCatalogConfig(process.env, args.noCatalog);
+
   const vite = await createViteServer({
     configFile: false,
     root: CLIENT_ROOT,
@@ -97,6 +104,7 @@ async function main(): Promise<void> {
     initialFile,
     port: args.port,
     viteMiddlewares: vite.middlewares,
+    catalog: catalogConfig,
   });
 
   const httpServer = createHttpServer(handler);
@@ -106,6 +114,21 @@ async function main(): Promise<void> {
   console.log(`Pattern Studio rodando em ${url}`);
   if (initialFile) console.log(`Arquivo inicial: ${initialFile}`);
   if (args.open) openBrowser(url);
+
+  // nunca bloqueia a abertura do navegador -- tenta conectar/reindexar em segundo plano
+  void (async () => {
+    if (catalogConfig.mode === 'off') {
+      console.log('catalogo: desabilitado (--no-catalog)');
+      return;
+    }
+    const sql = await getCatalogSql(catalogConfig);
+    if (!sql) {
+      console.log(`catalogo: offline (${getCatalogStatus()}) -- rode "npm run catalog:up" para habilitar a busca`);
+      return;
+    }
+    const result = await reindex(sql, REPO_ROOT, allowedRoots);
+    console.log(`catalogo: ok -- ${result.indexed} novo(s), ${result.updated} atualizado(s), ${result.removed} removido(s)`);
+  })();
 }
 
 main().catch((err) => {

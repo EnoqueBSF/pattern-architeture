@@ -31,6 +31,14 @@
         "en"
       ]
     },
+    "tags": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(?:[-_.][a-z0-9]+)*$"
+      }
+    },
     "groups": {
       "default": [],
       "type": "array",

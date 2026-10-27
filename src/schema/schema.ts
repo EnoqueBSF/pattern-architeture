@@ -159,6 +159,7 @@ export const DiagramSchema = z
     description: z.string().max(400).optional(),
     direction: z.enum(['LR', 'TB']).default('LR'),
     locale: z.enum(['pt-BR', 'en']).default('pt-BR'),
+    tags: z.array(Id).max(12).optional(),
     groups: z.array(GroupSchema).default([]),
     nodes: z.array(NodeSchema).min(1),
     edges: z.array(EdgeSchema).default([]),

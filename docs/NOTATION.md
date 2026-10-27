@@ -16,10 +16,15 @@ title: "..."              # obrigatorio
 description: "..."        # opcional, 1 linha abaixo do titulo
 direction: LR              # LR (padrao) | TB
 locale: pt-BR               # pt-BR (padrao) | en
+tags: [checkout, pagamentos]  # opcional, ate 12, mesmo formato de id (minusculas/digitos/- _ .)
 groups: [...]
 nodes: [...]
 edges: [...]
 ```
+
+`tags` é só metadado — não aparece desenhado em lugar nenhum do SVG/PNG, não afeta o layout. Serve
+para busca/filtro no [catálogo do Studio](./STUDIO.md#catálogo) (ex.: encontrar todos os diagramas
+de um projeto ou categoria).
 
 ## `nodes[]`
 

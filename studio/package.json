@@ -7,6 +7,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "vitest run",
+    "test:db": "vitest run -c vitest.db.config.ts",
     "check": "npm run typecheck && npm run test"
   },
   "dependencies": {
@@ -19,7 +20,10 @@
     "@codemirror/lang-yaml": "^6.1.1",
     "@codemirror/lint": "^6.8.1",
     "@codemirror/state": "^6.4.1",
-    "@codemirror/view": "^6.34.1"
+    "@codemirror/view": "^6.34.1",
+    "postgres": "^3.4.9",
+    "zod": "^4.6.7",
+    "@modelcontextprotocol/server": "2.4.0"
   },
   "devDependencies": {
     "vite": "8.3.5",
@@ -28,6 +32,7 @@
     "vitest": "^5.0.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@types/node": "^22.13.0"
+    "@types/node": "^22.13.0",
+    "@modelcontextprotocol/client": "2.4.0"
   }
 }

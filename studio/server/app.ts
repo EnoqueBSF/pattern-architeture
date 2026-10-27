@@ -9,9 +9,14 @@ import { DiagramValidationError } from '../../src/schema/load.js';
 import { FONT_PATH_REGULAR, FONT_PATH_SEMIBOLD } from '../../src/text/fonts.js';
 import { nodeTypeLabel, statusCaption } from '../../src/theme/i18n.js';
 import { GROUP_STYLE } from '../../src/theme/theme.js';
+import type { CatalogConfig } from '../catalog/config.js';
+import { getCatalogSql, getCatalogStatus, markCatalogUnavailable } from '../catalog/db.js';
+import { reindex as reindexCatalog } from '../catalog/indexer.js';
+import { facets, search, type CatalogItem } from '../catalog/repo.js';
 import { applyDrop, DropNotFoundError, renderView } from './engine.js';
-import { ConflictError, ExistsError, listFiles, readYamlFile, writeYamlFile } from './files.js';
+import { ConflictError, ExistsError, listFiles, readYamlFile, sha256 } from './files.js';
 import { HttpError, readJsonBody, sendError, sendJson } from './http-util.js';
+import { saveDiagram } from './save.js';
 import { listTemplates, readTemplate } from './templates.js';
 
 export interface ViteMiddlewares {
@@ -28,6 +33,22 @@ export interface HandlerOptions {
   port: number;
   /** middlewares do Vite dev server (modo middleware), ou null se o build do client nao estiver disponivel */
   viteMiddlewares: ViteMiddlewares | null;
+  /** config explicita do catalogo (controle por instancia, usado em testes); default: le do ambiente */
+  catalog?: CatalogConfig;
+}
+
+/** `onDisk` e calculado so para a pagina retornada (no maximo 50 itens) -- compara o hash atual do arquivo com o que esta indexado, para o client sinalizar quando um diagrama foi editado fora do catalogo (CLI, `git pull`, edicao manual) desde a ultima indexacao. */
+function toClientCatalogItem(item: CatalogItem): Omit<CatalogItem, 'yamlSha256'> & { onDisk: 'ok' | 'changed' | 'missing' } {
+  const { yamlSha256, ...rest } = item;
+  let onDisk: 'ok' | 'changed' | 'missing' = 'missing';
+  if (existsSync(item.path)) {
+    try {
+      onDisk = sha256(readFileSync(item.path, 'utf-8')) === yamlSha256 ? 'ok' : 'changed';
+    } catch {
+      onDisk = 'missing';
+    }
+  }
+  return { ...rest, onDisk };
 }
 
 function isAllowedRequest(req: IncomingMessage, port: number): boolean {
@@ -161,6 +182,67 @@ export function createHandler(opts: HandlerOptions) {
         return;
       }
 
+      if (pathname === '/api/catalog/status' && req.method === 'GET') {
+        const sql = await getCatalogSql(opts.catalog);
+        if (!sql) {
+          sendJson(res, 503, { status: getCatalogStatus() });
+          return;
+        }
+        try {
+          const rows = await sql<{ count: string }[]>`SELECT count(*)::text AS count FROM diagrams`;
+          sendJson(res, 200, { status: 'ok', count: Number(rows[0]!.count) });
+        } catch {
+          // a conexao estava "ok" (cacheada) mas o Postgres caiu desde entao -- so uma query real
+          // revela isso; marca indisponivel para a proxima chamada tentar reconectar
+          markCatalogUnavailable();
+          sendJson(res, 503, { status: getCatalogStatus() });
+        }
+        return;
+      }
+
+      if (pathname === '/api/catalog/search' && req.method === 'GET') {
+        const sql = await getCatalogSql(opts.catalog);
+        if (!sql) {
+          sendJson(res, 503, { status: getCatalogStatus() });
+          return;
+        }
+        try {
+          const tagParams = url.searchParams.getAll('tag');
+          const limitParam = url.searchParams.get('limit');
+          const offsetParam = url.searchParams.get('offset');
+          const [result, facetsResult] = await Promise.all([
+            search(sql, {
+              query: url.searchParams.get('q') ?? undefined,
+              tags: tagParams.length > 0 ? tagParams : undefined,
+              project: url.searchParams.get('project') ?? undefined,
+              limit: limitParam ? Number(limitParam) : undefined,
+              offset: offsetParam ? Number(offsetParam) : undefined,
+            }),
+            facets(sql),
+          ]);
+          sendJson(res, 200, { items: result.items.map(toClientCatalogItem), total: result.total, facets: facetsResult });
+        } catch {
+          markCatalogUnavailable();
+          sendJson(res, 503, { status: getCatalogStatus() });
+        }
+        return;
+      }
+
+      if (pathname === '/api/catalog/reindex' && req.method === 'POST') {
+        const sql = await getCatalogSql(opts.catalog);
+        if (!sql) {
+          sendJson(res, 503, { status: getCatalogStatus() });
+          return;
+        }
+        try {
+          sendJson(res, 200, await reindexCatalog(sql, opts.repoRoot, opts.allowedRoots));
+        } catch {
+          markCatalogUnavailable();
+          sendJson(res, 503, { status: getCatalogStatus() });
+        }
+        return;
+      }
+
       if (pathname === '/api/templates' && req.method === 'GET') {
         sendJson(res, 200, { templates: listTemplates() });
         return;
@@ -192,13 +274,15 @@ export function createHandler(opts: HandlerOptions) {
         if (typeof body.source !== 'string') throw new HttpError(400, 'campo "source" (string) e obrigatorio');
 
         try {
-          const result = writeYamlFile({
+          const result = await saveDiagram({
             path: body.path,
             source: body.source,
             baseHash: body.baseHash,
             overwrite: body.overwrite,
             allowedRoots: opts.allowedRoots,
             repoRoot: opts.repoRoot,
+            origin: 'studio',
+            catalogConfig: opts.catalog,
           });
           sendJson(res, 200, result);
         } catch (err) {

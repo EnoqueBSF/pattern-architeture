@@ -101,6 +101,30 @@ edges:
   });
 });
 
+describe('renderDiagramSource: campo tags (metadado, nao afeta o desenho)', () => {
+  const base = `version: 1
+title: "Diagrama de teste"
+nodes:
+  - { id: a, label: A, type: generic, status: unchanged }
+`;
+
+  it('o SVG e identico com e sem tags -- tags e so metadado para o catalogo', () => {
+    const withoutTags = renderDiagramSource(base);
+    const withTags = renderDiagramSource(`${base}tags: [checkout, pagamentos]\n`);
+    expect(withTags.svg).toBe(withoutTags.svg);
+  });
+
+  it('rejeita uma tag que nao bate o formato de id (minusculas/digitos/- _ .)', () => {
+    expect(() => renderDiagramSource(`${base}tags: ["Com Espaco"]\n`)).toThrow();
+  });
+
+  it('rejeita mais de 12 tags', () => {
+    const manyTags = Array.from({ length: 13 }, (_, i) => `tag-${i}`);
+    const source = `${base}tags: [${manyTags.join(', ')}]\n`;
+    expect(() => renderDiagramSource(source)).toThrow();
+  });
+});
+
 describe('loadDiagramFile + renderDiagramSource: consistencia', () => {
   it('nodeCount/edgeCount do relatorio batem com o modelo carregado', () => {
     const model = loadDiagramFile(example('intera-bff/intera-bff.yaml'));

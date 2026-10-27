@@ -4,7 +4,7 @@ export type Coll = 'nodes' | 'groups' | 'edges';
 export type Value = string | number | boolean | string[];
 
 export type Op =
-  | { op: 'setRoot'; key: 'title' | 'description' | 'direction' | 'locale'; value?: Value }
+  | { op: 'setRoot'; key: 'title' | 'description' | 'direction' | 'locale' | 'tags'; value?: Value }
   | { op: 'setField'; coll: Coll; index: number; key: string; value?: Value }
   | { op: 'append'; coll: Coll; item: Record<string, Value> }
   | { op: 'remove'; coll: Coll; index: number };
@@ -15,7 +15,7 @@ export interface ApplyResult {
 }
 
 const KEY_ORDER: Record<'root' | Coll, string[]> = {
-  root: ['version', 'title', 'description', 'direction', 'locale', 'groups', 'nodes', 'edges'],
+  root: ['version', 'title', 'description', 'direction', 'locale', 'tags', 'groups', 'nodes', 'edges'],
   nodes: ['id', 'label', 'type', 'status', 'tech', 'group', 'description', 'icon', 'slug', 'subtitle', 'badge', 'rank', 'order'],
   groups: ['id', 'label', 'kind', 'parent', 'rank', 'order'],
   edges: ['id', 'from', 'to', 'protocol', 'label', 'status', 'async', 'bidirectional'],

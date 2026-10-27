@@ -13,6 +13,16 @@ export function DiagramForm() {
   const description = typeof parsed.description === 'string' ? parsed.description : '';
   const direction = typeof parsed.direction === 'string' ? parsed.direction : 'LR';
   const locale = typeof parsed.locale === 'string' ? parsed.locale : 'pt-BR';
+  const tags = Array.isArray(parsed.tags) ? (parsed.tags as unknown[]).filter((t): t is string => typeof t === 'string') : [];
+  const tagsText = tags.join(', ');
+
+  function setTags(value: string) {
+    const next = value
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+    applyOps([{ op: 'setRoot', key: 'tags', value: next.length > 0 ? next : undefined }]);
+  }
 
   return (
     <div className="inspector-form">
@@ -41,6 +51,7 @@ export function DiagramForm() {
           { value: 'en', label: 'English' },
         ]}
       />
+      <TextField label="Tags" value={tagsText} onChange={setTags} placeholder="checkout, pagamentos" />
     </div>
   );
 }

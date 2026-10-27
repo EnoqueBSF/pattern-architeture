@@ -21,6 +21,9 @@ export interface RawDiagramLike {
   edges?: RawEdgeLike[];
 }
 
+/** Referencia (node/grupo/edge) que nao existe no diagrama -- mapeada para NOT_FOUND no MCP. */
+export class NotFoundError extends Error {}
+
 function withoutUndefined(item: Record<string, Value | undefined>): Record<string, Value> {
   const out: Record<string, Value> = {};
   for (const [k, v] of Object.entries(item)) if (v !== undefined) out[k] = v;
@@ -51,13 +54,13 @@ export function toRawDiagram(parsed: unknown): RawDiagramLike | null {
 
 export function setNodeField(raw: RawDiagramLike, nodeId: string, key: string, value: Value | undefined): Op[] {
   const index = raw.nodes.findIndex((n) => n.id === nodeId);
-  if (index === -1) throw new Error(`node "${nodeId}" nao encontrado`);
+  if (index === -1) throw new NotFoundError(`node "${nodeId}" nao encontrado`);
   return [{ op: 'setField', coll: 'nodes', index, key, value }];
 }
 
 export function setGroupField(raw: RawDiagramLike, groupId: string, key: string, value: Value | undefined): Op[] {
   const index = (raw.groups ?? []).findIndex((g) => g.id === groupId);
-  if (index === -1) throw new Error(`grupo "${groupId}" nao encontrado`);
+  if (index === -1) throw new NotFoundError(`grupo "${groupId}" nao encontrado`);
   return [{ op: 'setField', coll: 'groups', index, key, value }];
 }
 
@@ -65,11 +68,51 @@ export function setEdgeField(edgeIndex: number, key: string, value: Value | unde
   return [{ op: 'setField', coll: 'edges', index: edgeIndex, key, value }];
 }
 
+export type EdgeRef = { id: string } | { from: string; to: string; protocol?: string } | { index: number };
+
+/** Referencia de edge que casa com mais de uma (ou nenhuma, para index fora do range) -- quem pega decide o codigo de erro (ex.: BAD_REF no MCP). */
+export class AmbiguousEdgeRefError extends Error {
+  constructor(public readonly candidates: number[]) {
+    super(`referencia de edge ambigua: ${candidates.length} candidatos (indices ${candidates.join(', ')})`);
+  }
+}
+
+/** Resolve uma EdgeRef (id | from+to[+protocol] | index) para o indice na lista de edges. */
+export function findEdgeIndex(raw: RawDiagramLike, ref: EdgeRef): number {
+  const edges = raw.edges ?? [];
+
+  if ('index' in ref) {
+    if (ref.index < 0 || ref.index >= edges.length) throw new NotFoundError(`indice de edge invalido: ${ref.index}`);
+    return ref.index;
+  }
+
+  if ('id' in ref) {
+    const matches = edges.reduce<number[]>((acc, e, i) => {
+      if (e.id === ref.id) acc.push(i);
+      return acc;
+    }, []);
+    if (matches.length === 0) throw new NotFoundError(`edge com id "${ref.id}" nao encontrada`);
+    if (matches.length > 1) throw new AmbiguousEdgeRefError(matches);
+    return matches[0]!;
+  }
+
+  const matches = edges.reduce<number[]>((acc, e, i) => {
+    const protocolOk = ref.protocol === undefined || (e as RawEdgeLike & { protocol?: string }).protocol === ref.protocol;
+    if (e.from === ref.from && e.to === ref.to && protocolOk) acc.push(i);
+    return acc;
+  }, []);
+  if (matches.length === 0) {
+    throw new NotFoundError(`nenhuma edge de "${ref.from}" para "${ref.to}"${ref.protocol ? ` (protocol ${ref.protocol})` : ''}`);
+  }
+  if (matches.length > 1) throw new AmbiguousEdgeRefError(matches);
+  return matches[0]!;
+}
+
 /** Renomeia um node, propagando a mudanca para edges.from/to que o referenciam. */
 export function renameNode(raw: RawDiagramLike, oldId: string, newId: string): Op[] {
   const ops: Op[] = [];
   const nodeIndex = raw.nodes.findIndex((n) => n.id === oldId);
-  if (nodeIndex === -1) throw new Error(`node "${oldId}" nao encontrado`);
+  if (nodeIndex === -1) throw new NotFoundError(`node "${oldId}" nao encontrado`);
   ops.push({ op: 'setField', coll: 'nodes', index: nodeIndex, key: 'id', value: newId });
   (raw.edges ?? []).forEach((e, i) => {
     if (e.from === oldId) ops.push({ op: 'setField', coll: 'edges', index: i, key: 'from', value: newId });
@@ -83,7 +126,7 @@ export function renameGroup(raw: RawDiagramLike, oldId: string, newId: string): 
   const ops: Op[] = [];
   const groups = raw.groups ?? [];
   const groupIndex = groups.findIndex((g) => g.id === oldId);
-  if (groupIndex === -1) throw new Error(`grupo "${oldId}" nao encontrado`);
+  if (groupIndex === -1) throw new NotFoundError(`grupo "${oldId}" nao encontrado`);
   ops.push({ op: 'setField', coll: 'groups', index: groupIndex, key: 'id', value: newId });
   raw.nodes.forEach((n, i) => {
     if (n.group === oldId) ops.push({ op: 'setField', coll: 'nodes', index: i, key: 'group', value: newId });
@@ -104,7 +147,7 @@ export function deleteNode(raw: RawDiagramLike, nodeId: string): Op[] {
   for (const i of edgeIndexes.sort((a, b) => b - a)) ops.push({ op: 'remove', coll: 'edges', index: i });
 
   const nodeIndex = raw.nodes.findIndex((n) => n.id === nodeId);
-  if (nodeIndex === -1) throw new Error(`node "${nodeId}" nao encontrado`);
+  if (nodeIndex === -1) throw new NotFoundError(`node "${nodeId}" nao encontrado`);
   ops.push({ op: 'remove', coll: 'nodes', index: nodeIndex });
   return ops;
 }
@@ -114,7 +157,7 @@ export function deleteGroup(raw: RawDiagramLike, groupId: string): Op[] {
   const ops: Op[] = [];
   const groups = raw.groups ?? [];
   const group = groups.find((g) => g.id === groupId);
-  if (!group) throw new Error(`grupo "${groupId}" nao encontrado`);
+  if (!group) throw new NotFoundError(`grupo "${groupId}" nao encontrado`);
   const parent = group.parent as string | undefined; // undefined = sobe para a raiz
 
   raw.nodes.forEach((n, i) => {

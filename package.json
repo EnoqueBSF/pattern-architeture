@@ -16,8 +16,14 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm run test",
     "studio": "tsx studio/server/main.ts",
+    "mcp": "tsx studio/mcp/main.ts",
     "studio:install": "npm --prefix studio install",
-    "studio:check": "npm --prefix studio run check"
+    "studio:check": "npm --prefix studio run check",
+    "catalog:up": "docker compose -f studio/catalog/compose.yaml up -d --wait",
+    "catalog:down": "docker compose -f studio/catalog/compose.yaml down",
+    "catalog:status": "tsx studio/catalog/cli.ts status",
+    "catalog:reindex": "tsx studio/catalog/cli.ts reindex",
+    "catalog:reset": "tsx studio/catalog/cli.ts reset"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
